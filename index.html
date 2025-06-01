@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FoodFleet - Premium Food Delivery</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#fc8019',
+                        secondary: '#171a29',
+                        accent: '#48c479',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        html { scroll-behavior: smooth; }
+        .modal {
+            display: none; /* Modals are hidden by default */
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            overflow: auto; 
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background-color: white;
+            margin: auto;
+            padding: 0; 
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px; 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            animation: modalFade 0.3s ease-out;
+        }
+        @keyframes modalFade {
+            from {opacity: 0; transform: translateY(-20px);}
+            to {opacity: 1; transform: translateY(0);}
+        }
+        .cart-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background-color: #fc8019;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        /* Styles for checkout modal steps */
+        .checkout-step.active .w-8.h-8 {
+            background-color: #fc8019; /* primary color */
+            color: white;
+        }
+        .checkout-step.active span {
+            color: #171a29; /* secondary color or a prominent dark color */
+            font-weight: 600;
+        }
+        .checkout-step:not(.active) .w-8.h-8 {
+            background-color: #D1D5DB; /* gray-300 */
+            color: #4B5563; /* gray-600 */
+        }
+        .checkout-step:not(.active) span {
+            color: #4B5563; /* gray-600 */
+        }
+        .checkout-step.completed .w-8.h-8 {
+            background-color: #48c479; /* accent color */
+            color: white;
+        }
+         .checkout-step.completed span {
+            color: #171a29;
+             font-weight: 500;
+        }
+        /* Show menu images in menu modal */
+        #menuItems {
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        /* Improved menu modal item styles */
+        #menuItems img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+        #menuItems .add-to-cart-btn {
+            white-space: nowrap;
+            margin-left: 12px;
+        }
+        #menuItems > div {
+            align-items: center;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans text-secondary">
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="text-2xl font-bold text-primary">FoodFleet</div>
+            <nav class="hidden md:flex space-x-8 items-center" id="desktop-nav">
+                <a href="#" class="font-medium hover:text-primary transition-colors">Home</a>
+                <a href="#offers" class="font-medium hover:text-primary transition-colors">Offers</a>
+                <a href="#" class="font-medium hover:text-primary transition-colors">Help</a>
+                <a href="#" id="orderNowBtn" class="font-medium hover:text-primary transition-colors">Order Now</a>
+                <a href="#" id="cartBtn" class="relative flex items-center font-medium hover:text-primary transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                    Cart
+                    <span id="cartCount" class="cart-badge hidden">0</span>
+                </a>
+            </nav>
+            <button class="md:hidden" id="mobile-menu-button">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+            </button>
+        </div>
+        <div class="md:hidden hidden bg-white w-full py-2 px-4 shadow-lg" id="mobile-menu">
+            <a href="#" class="block py-2 font-medium hover:text-primary">Home</a>
+            <a href="#offers" class="block py-2 font-medium hover:text-primary">Offers</a>
+            <a href="#" class="block py-2 font-medium hover:text-primary">Help</a>
+            <a href="#" class="block py-2 font-medium hover:text-primary" id="mobileOrderNowBtn">Order Now</a>
+            <a href="#" class="block py-2 font-medium hover:text-primary" id="mobileCartBtn">Cart (<span id="mobileCartCount">0</span>)</a>
+        </div>
+    </header>
+
+    <main>
+        <section class="relative bg-gradient-to-r from-secondary to-gray-800 text-white py-20 md:py-32">
+            <div class="container mx-auto px-4 text-center">
+                <h1 class="text-4xl md:text-5xl font-bold mb-4">Late night at the office?</h1>
+                <p class="text-xl mb-8 max-w-2xl mx-auto">Order food from your favorite restaurants near you.</p>
+                <div class="flex flex-col md:flex-row justify-center gap-2 max-w-xl mx-auto">
+                    <input type="text" id="locationInput" placeholder="Enter your delivery location" class="flex-grow py-3 px-4 rounded-lg text-secondary focus:outline-none focus:ring-2 focus:ring-primary">
+                    <button id="findFoodBtn" class="bg-primary hover:bg-primary/90 text-white font-semibold py-3 px-6 rounded-lg transition-colors animate-pulse-slow">
+                        Find Food
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section class="container mx-auto px-4 py-12">
+            <h2 class="text-3xl font-bold mb-8 inline-block border-b-4 border-primary pb-2">Restaurants Near You</h2>
+            <div id="filter-container" class="mb-8 flex flex-wrap gap-4">
+                <button class="filter-btn bg-primary text-white px-4 py-2 rounded-full shadow transition-colors" data-filter="all">All</button>
+                <button class="filter-btn bg-white hover:bg-gray-100 text-secondary px-4 py-2 rounded-full shadow transition-colors" data-filter="fast">Fast Delivery</button>
+                <button class="filter-btn bg-white hover:bg-gray-100 text-secondary px-4 py-2 rounded-full shadow transition-colors" data-filter="top">Top Rated</button>
+                <button class="filter-btn bg-white hover:bg-gray-100 text-secondary px-4 py-2 rounded-full shadow transition-colors" data-filter="veg">Pure Veg</button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="restaurant-grid">
+                </div>
+            <div id="no-results" class="hidden text-center text-gray-500 py-10">
+                <p class="text-xl">No restaurants match your filter.</p>
+            </div>
+        </section>
+
+        <section id="offers" class="bg-gray-100 py-16">
+            <div class="container mx-auto px-4">
+                <h2 class="text-3xl font-bold mb-8 inline-block border-b-4 border-primary pb-2">Special Offers</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300"><div class="bg-primary/10 p-6"><h3 class="text-xl font-bold text-primary">50% OFF</h3><p class="text-gray-700">Up to ₹100 on your first order</p><p class="text-sm text-gray-500 mt-2">Use code: WELCOME50</p></div><div class="p-4 border-t"><button class="copy-code-btn w-full py-2 border border-primary text-primary hover:bg-primary hover:text-white rounded-lg transition-colors" data-code="WELCOME50">Copy Code</button></div></div>
+                    <div class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300"><div class="bg-blue-50 p-6"><h3 class="text-xl font-bold text-blue-600">FREE DELIVERY</h3><p class="text-gray-700">On orders above ₹300</p><p class="text-sm text-gray-500 mt-2">Use code: FREEDEL</p></div><div class="p-4 border-t"><button class="copy-code-btn w-full py-2 border border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg transition-colors" data-code="FREEDEL">Copy Code</button></div></div>
+                    <div class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300"><div class="bg-green-50 p-6"><h3 class="text-xl font-bold text-green-600">WEEKEND SPECIAL</h3><p class="text-gray-700">20% off on all orders</p><p class="text-sm text-gray-500 mt-2">Use code: WEEKEND20</p></div><div class="p-4 border-t"><button class="copy-code-btn w-full py-2 border border-green-600 text-green-600 hover:bg-green-600 hover:text-white rounded-lg transition-colors" data-code="WEEKEND20">Copy Code</button></div></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-secondary text-white py-12">
+        <div class="container mx-auto px-4"><div class="grid grid-cols-1 md:grid-cols-4 gap-8"><div><h3 class="text-xl font-bold mb-4">FoodFleet</h3><p class="text-gray-300">Order food from the best restaurants with our easy-to-use platform.</p></div><div><h3 class="text-lg font-semibold mb-4">Company</h3><ul class="space-y-2"><li><a href="#" class="text-gray-300 hover:text-white">About Us</a></li><li><a href="#" class="text-gray-300 hover:text-white">Careers</a></li><li><a href="#" class="text-gray-300 hover:text-white">Partner With Us</a></li></ul></div><div><h3 class="text-lg font-semibold mb-4">Contact</h3><ul class="space-y-2"><li><a href="#" class="text-gray-300 hover:text-white">Help & Support</a></li><li><a href="#" class="text-gray-300 hover:text-white">Partner Inquiries</a></li></ul></div><div><h3 class="text-lg font-semibold mb-4">Legal</h3><ul class="space-y-2"><li><a href="#" class="text-gray-300 hover:text-white">Terms & Conditions</a></li><li><a href="#" class="text-gray-300 hover:text-white">Privacy Policy</a></li></ul></div></div><div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-300"><p>&copy; 2025 FoodFleet. All Rights Reserved.</p></div></div>
+    </footer>
+
+    <!-- Help Modal -->
+    <div id="helpModal" class="modal">
+      <div class="modal-content p-6 max-w-lg">
+        <span class="close-modal cursor-pointer float-right text-2xl font-bold">&times;</span>
+        <h2 class="text-2xl font-bold mb-4 text-center">Help & Support</h2>
+        <div class="mb-6">
+          <h3 class="font-semibold mb-2">Frequently Asked Questions</h3>
+          <ul class="list-disc pl-5 text-gray-700 text-sm space-y-1">
+            <li><strong>How do I place an order?</strong> <br>Click "Order Now" and select your favorite restaurant and dishes.</li>
+            <li><strong>How can I apply a promo code?</strong> <br>Enter your code during checkout in the promo code field.</li>
+            <li><strong>What payment methods are accepted?</strong> <br>We accept cards, UPI, wallets, and cash on delivery.</li>
+            <li><strong>How do I contact support?</strong> <br>Use the form below and we'll get back to you soon!</li>
+          </ul>
+        </div>
+        <form id="helpContactForm" class="space-y-4">
+          <div>
+            <label for="helpName" class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+            <input type="text" id="helpName" name="name" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+          </div>
+          <div>
+            <label for="helpEmail" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input type="email" id="helpEmail" name="email" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+          </div>
+          <div>
+            <label for="helpMessage" class="block text-sm font-medium text-gray-700 mb-1">Message</label>
+            <textarea id="helpMessage" name="message" rows="3" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"></textarea>
+          </div>
+          <button type="submit" class="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-2 px-4 rounded-lg transition-colors">Send Message</button>
+          <p id="helpThankYou" class="hidden text-green-600 text-center mt-2 font-medium">Thank you! We have received your message.</p>
+        </form>
+      </div>
+    </div>
+
+    <div id="signInModal" class="modal"><div class="modal-content p-6"><span class="close-modal cursor-pointer float-right text-2xl font-bold">&times;</span><h2 class="text-2xl font-bold mb-6 text-center">Sign In</h2><form id="signInForm" class="space-y-4"><div><label for="signInEmail" class="block text-sm font-medium text-gray-700 mb-1">Email</label><input type="email" id="signInEmail" name="email" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"></div><div><label for="signInPassword" class="block text-sm font-medium text-gray-700 mb-1">Password</label><input type="password" id="signInPassword" name="password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"></div><button type="submit" class="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-2 px-4 rounded-lg transition-colors">Sign In</button></form><div class="mt-4 text-center"><p class="text-sm text-gray-600">Don't have an account? <a href="#" class="text-primary font-medium">Sign Up</a></p></div></div></div>
+    <div id="cartModal" class="modal"><div class="modal-content p-6"><span class="close-modal cursor-pointer float-right text-2xl font-bold">&times;</span><h2 class="text-2xl font-bold mb-6">Your Cart</h2><div id="cartItems" class="space-y-4 mb-6 max-h-64 overflow-y-auto"></div><div id="cartTotal" class="hidden border-t pt-4 flex justify-between items-center"><span class="text-lg font-semibold">Total:</span><span class="text-xl font-bold">₹0</span></div><p id="emptyCartMessage" class="text-center text-gray-500 py-4">Your cart is empty</p><button id="checkoutBtn" class="w-full mt-6 bg-accent hover:bg-accent/90 text-white font-semibold py-3 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>Proceed to Checkout</button></div></div>
+    <div id="menuModal" class="modal"><div class="modal-content p-6"><span class="close-modal cursor-pointer float-right text-2xl font-bold">&times;</span><h2 id="menuRestaurantName" class="text-2xl font-bold mb-2"></h2><p id="menuRestaurantCuisine" class="text-gray-600 text-sm mb-6"></p><div id="menuItems" class="space-y-4 max-h-80 overflow-y-auto"></div></div></div>
+    <div id="locationModal" class="modal"><div class="modal-content p-6"><span class="close-modal cursor-pointer float-right text-2xl font-bold">&times;</span><h2 class="text-2xl font-bold mb-6">Confirm Location</h2><p class="mb-4">Deliver to: <span id="selectedLocation" class="font-semibold"></span></p><button id="confirmLocationBtn" class="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-2 px-4 rounded-lg transition-colors">Confirm Location & Find Restaurants</button></div></div>
+
+    <div id="notificationToast" class="fixed bottom-4 right-4 bg-secondary text-white rounded-lg shadow-lg p-4 transform translate-y-20 opacity-0 transition-all duration-300 z-[110] max-w-xs"><div class="flex items-center"><div id="toastIcon" class="mr-3 text-accent"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg></div><div><p id="toastMessage" class="font-medium"></p></div></div></div>
+
+    <div id="checkoutModal" class="modal fixed inset-0 z-[101] overflow-auto bg-black bg-opacity-50 items-center justify-center"> <div class="modal-content bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[95vh] overflow-y-auto"> 
+            <div class="sticky top-0 bg-white z-10 px-6 py-4 border-b flex justify-between items-center">
+                <h2 class="text-2xl font-bold text-gray-800">Complete Your Order</h2>
+                <span class="close-modal cursor-pointer text-2xl font-bold hover:text-primary transition-colors">&times;</span>
+            </div>
+            
+            <div class="px-6 py-4 bg-gray-50">
+                <div class="flex items-center justify-between">
+                    <div class="checkout-step active" data-step="1">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center font-bold shadow-md transition-all duration-300">1</div>
+                            <span class="ml-2 font-medium text-gray-800 transition-all duration-300">Delivery Info</span>
+                        </div>
+                    </div>
+                    <div class="flex-1 border-t-2 border-gray-300 mx-2 md:mx-4 mt-0"></div>
+                    <div class="checkout-step" data-step="2">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center font-bold shadow-md transition-all duration-300">2</div>
+                            <span class="ml-2 font-medium text-gray-600 transition-all duration-300">Payment</span>
+                        </div>
+                    </div>
+                    <div class="flex-1 border-t-2 border-gray-300 mx-2 md:mx-4 mt-0"></div>
+                    <div class="checkout-step" data-step="3">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center font-bold shadow-md transition-all duration-300">3</div>
+                            <span class="ml-2 font-medium text-gray-600 transition-all duration-300">Confirmation</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="md:col-span-2">
+                        <div class="checkout-step-content bg-white rounded-lg" id="checkout-step-1">
+                            <h3 class="text-xl font-bold mb-4 text-gray-800">Delivery Information</h3>
+                            <form id="deliveryInfoForm" class="space-y-4">
+                                <div>
+                                    <label for="fullName" class="block text-sm font-medium text-gray-700 mb-1">Full Name*</label>
+                                    <input type="text" id="fullName" name="fullName" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors" placeholder="Enter your full name">
+                                    <p class="text-red-500 text-sm mt-1 hidden error-message" id="fullName-error">Please enter your full name</p>
+                                </div>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="contactNumber" class="block text-sm font-medium text-gray-700 mb-1">Contact Number*</label>
+                                        <input type="tel" id="contactNumber" name="contactNumber" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors" placeholder="10-digit mobile number">
+                                        <p class="text-red-500 text-sm mt-1 hidden error-message" id="contactNumber-error">Please enter a valid 10-digit phone number</p>
+                                    </div>
+                                    
+                                    <div>
+                                        <label for="deliveryEmail" class="block text-sm font-medium text-gray-700 mb-1">Email Address*</label>
+                                        <input type="email" id="deliveryEmail" name="email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors" placeholder="For order confirmation">
+                                        <p class="text-red-500 text-sm mt-1 hidden error-message" id="deliveryEmail-error">Please enter a valid email address</p>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label for="deliveryAddress" class="block text-sm font-medium text-gray-700 mb-1">Delivery Address*</label>
+                                    <textarea id="deliveryAddress" name="deliveryAddress" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors" placeholder="House/Flat No., Building, Street, Area"></textarea>
+                                    <p class="text-red-500 text-sm mt-1 hidden error-message" id="deliveryAddress-error">Please enter your delivery address</p>
+                                </div>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label for="city" class="block text-sm font-medium text-gray-700 mb-1">City*</label>
+                                        <input type="text" id="city" name="city" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors">
+                                        <p class="text-red-500 text-sm mt-1 hidden error-message" id="city-error">Please enter your city</p>
+                                    </div>
+                                    
+                                    <div>
+                                        <label for="state" class="block text-sm font-medium text-gray-700 mb-1">State*</label>
+                                        <input type="text" id="state" name="state" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors">
+                                        <p class="text-red-500 text-sm mt-1 hidden error-message" id="state-error">Please enter your state</p>
+                                    </div>
+                                    
+                                    <div>
+                                        <label for="pinCode" class="block text-sm font-medium text-gray-700 mb-1">PIN/Zip Code*</label>
+                                        <input type="text" id="pinCode" name="pinCode" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors" placeholder="6-digit PIN code">
+                                        <p class="text-red-500 text-sm mt-1 hidden error-message" id="pinCode-error">Please enter a valid 6-digit PIN code</p>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label for="deliveryInstructions" class="block text-sm font-medium text-gray-700 mb-1">Delivery Instructions (Optional)</label>
+                                    <textarea id="deliveryInstructions" name="deliveryInstructions" rows="2" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors" placeholder="Landmark, delivery preferences, etc."></textarea>
+                                </div>
+                                
+                                <div class="pt-4">
+                                    <button type="submit" class="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-3 px-6 rounded-lg transition-colors shadow-md hover:shadow-lg">
+                                        Continue to Payment
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <div class="checkout-step-content hidden bg-white rounded-lg" id="checkout-step-2">
+                            <h3 class="text-xl font-bold mb-4 text-gray-800">Payment Method</h3>
+                            <form id="paymentMethodForm" class="space-y-6">
+                                <div class="space-y-4">
+                                    <div class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
+                                        <input type="radio" id="paymentCard" name="paymentMethod" value="card" class="h-5 w-5 text-primary focus:ring-primary border-gray-300">
+                                        <label for="paymentCard" class="ml-3 block text-sm font-medium text-gray-700 flex-grow cursor-pointer">Credit/Debit Card</label>
+                                        <div class="flex space-x-2">
+                                            <svg class="h-8 w-auto" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="48" height="48" rx="6" fill="#1A1F71"/><path d="M18.4 30.9H14.4L12 19.8H16L18.4 30.9Z" fill="#FFFFFF"/><path d="M33.2 20.1C32.3 19.8 31 19.5 29.5 19.5C25.9 19.5 23.4 21.3 23.4 24C23.4 26 25.2 27.1 26.6 27.8C28 28.5 28.5 28.9 28.5 29.5C28.5 30.4 27.4 30.8 26.4 30.8C25 30.8 24.2 30.6 23 30.1L22.5 29.9L22 33.2C23.1 33.6 24.8 34 26.6 34C30.5 34 32.9 32.2 32.9 29.3C32.9 27.7 31.9 26.5 29.8 25.5C28.5 24.8 27.7 24.4 27.7 23.7C27.7 23.1 28.4 22.5 29.8 22.5C31 22.5 31.9 22.7 32.6 23L33 23.2L33.5 20.1H33.2Z" fill="#FFFFFF"/><path d="M38 19.8H35C34.2 19.8 33.6 20 33.3 20.8L28.7 30.9H32.6L33.3 29.1H37.4L37.8 30.9H41.3L38 19.8ZM34.3 26.5C34.3 26.5 35.7 23.1 35.9 22.6C35.9 22.6 36.1 22.1 36.3 21.8L36.5 22.5C36.5 22.5 37.3 25.1 37.4 26.5H34.3Z" fill="#FFFFFF"/><path d="M23.7 19.8L20.1 27.2L19.8 25.8C19.2 24 17.5 22 15.6 21L19 30.9H23L29 19.8H23.7Z" fill="#FFFFFF"/></svg>
+                                            <svg class="h-8 w-auto" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="48" height="48" rx="6" fill="#F7F7F7"/><path d="M16.4 31.8H31.6V16.2H16.4V31.8Z" fill="#FF5F00"/><path d="M17.4 24C17.4 20.8 18.9 18 21.1 16.2C19.5 14.9 17.5 14.2 15.4 14.2C10.1 14.2 5.9 18.6 5.9 24C5.9 29.4 10.1 33.8 15.4 33.8C17.5 33.8 19.5 33 21.1 31.8C18.9 30 17.4 27.2 17.4 24Z" fill="#EB001B"/><path d="M42.1 24C42.1 29.4 37.9 33.8 32.6 33.8C30.5 33.8 28.5 33 26.9 31.8C29.1 30 30.6 27.2 30.6 24C30.6 20.8 29.1 18 26.9 16.2C28.5 14.9 30.5 14.2 32.6 14.2C37.9 14.2 42.1 18.6 42.1 24Z" fill="#F79E1B"/></svg>
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="cardPaymentDetails" class="ml-6 space-y-4 p-4 bg-gray-50 rounded-lg">
+                                        <div>
+                                            <label for="cardNumber" class="block text-sm font-medium text-gray-700 mb-1">Card Number*</label>
+                                            <input type="text" id="cardNumber" name="cardNumber" placeholder="1234 5678 9012 3456" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors">
+                                            <p class="text-red-500 text-sm mt-1 hidden error-message" id="cardNumber-error">Please enter a valid card number</p>
+                                        </div>
+                                        
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label for="cardExpiry" class="block text-sm font-medium text-gray-700 mb-1">Expiry Date*</label>
+                                                <input type="text" id="cardExpiry" name="cardExpiry" placeholder="MM/YY" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors">
+                                                <p class="text-red-500 text-sm mt-1 hidden error-message" id="cardExpiry-error">Enter a valid MM/YY date</p>
+                                            </div>
+                                            
+                                            <div>
+                                                <label for="cardCvv" class="block text-sm font-medium text-gray-700 mb-1">CVV*</label>
+                                                <input type="text" id="cardCvv" name="cardCvv" placeholder="123" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors">
+                                                <p class="text-red-500 text-sm mt-1 hidden error-message" id="cardCvv-error">Please enter a valid 3-digit CVV</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div>
+                                            <label for="cardName" class="block text-sm font-medium text-gray-700 mb-1">Name on Card*</label>
+                                            <input type="text" id="cardName" name="cardName" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors" placeholder="Enter name as on card">
+                                            <p class="text-red-500 text-sm mt-1 hidden error-message" id="cardName-error">Please enter the name on your card</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
+                                        <input type="radio" id="paymentUpi" name="paymentMethod" value="upi" class="h-5 w-5 text-primary focus:ring-primary border-gray-300">
+                                        <label for="paymentUpi" class="ml-3 block text-sm font-medium text-gray-700 flex-grow cursor-pointer">UPI Payment</label>
+                                    </div>
+                                    
+                                    <div id="upiPaymentDetails" class="ml-6 space-y-4 p-4 bg-gray-50 rounded-lg hidden">
+                                        <div>
+                                            <label for="upiId" class="block text-sm font-medium text-gray-700 mb-1">UPI ID*</label>
+                                            <input type="text" id="upiId" name="upiId" placeholder="yourname@upi" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors">
+                                            <p class="text-red-500 text-sm mt-1 hidden error-message" id="upiId-error">Please enter a valid UPI ID</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
+                                        <input type="radio" id="paymentWallet" name="paymentMethod" value="wallet" class="h-5 w-5 text-primary focus:ring-primary border-gray-300">
+                                        <label for="paymentWallet" class="ml-3 block text-sm font-medium text-gray-700 flex-grow cursor-pointer">Wallet Payment</label>
+                                    </div>
+
+                                    <div id="walletPaymentDetails" class="ml-6 space-y-4 p-4 bg-gray-50 rounded-lg hidden">
+                                        <p class="text-sm text-gray-600">Select your wallet provider:</p>
+                                        <div class="flex flex-wrap gap-4">
+                                            <div class="flex items-center">
+                                                <input type="radio" id="walletPaytm" name="walletType" value="paytm" class="h-4 w-4 text-primary focus:ring-primary border-gray-300" checked>
+                                                <label for="walletPaytm" class="ml-2 block text-sm font-medium text-gray-700 cursor-pointer">Paytm</label>
+                                            </div>
+                                            <div class="flex items-center">
+                                                <input type="radio" id="walletPhonePe" name="walletType" value="phonepe" class="h-4 w-4 text-primary focus:ring-primary border-gray-300">
+                                                <label for="walletPhonePe" class="ml-2 block text-sm font-medium text-gray-700 cursor-pointer">PhonePe</label>
+                                            </div>
+                                            <div class="flex items-center">
+                                                <input type="radio" id="walletAmazonPay" name="walletType" value="amazonpay" class="h-4 w-4 text-primary focus:ring-primary border-gray-300">
+                                                <label for="walletAmazonPay" class="ml-2 block text-sm font-medium text-gray-700 cursor-pointer">Amazon Pay</label>
+                                            </div>
+                                        </div>
+                                        <p class="text-xs text-gray-500">Further wallet integration would proceed on the provider's site or app.</p>
+                                    </div>
+
+                                    <div class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
+                                        <input type="radio" id="paymentCod" name="paymentMethod" value="cod" class="h-5 w-5 text-primary focus:ring-primary border-gray-300">
+                                        <label for="paymentCod" class="ml-3 block text-sm font-medium text-gray-700 flex-grow cursor-pointer">Cash on Delivery</label>
+                                    </div>
+                                </div>
+                                
+                                <div class="pt-4 flex space-x-4">
+                                    <button type="button" id="backToDeliveryBtn" class="w-1/2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-lg transition-colors">
+                                        Back
+                                    </button>
+                                    <button type="submit" class="w-1/2 bg-primary hover:bg-primary/90 text-white font-semibold py-3 px-6 rounded-lg transition-colors shadow-md hover:shadow-lg">
+                                        Place Order
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <div class="checkout-step-content hidden" id="checkout-step-3">
+                            <div class="text-center py-8">
+                                <div class="mb-6">
+                                    <svg class="mx-auto h-16 w-16 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                </div>
+                                <h2 class="text-2xl font-bold mb-2">Order Placed Successfully!</h2>
+                                <p class="text-gray-600 mb-6">Your order has been placed and will be delivered soon.</p>
+                                <div class="bg-gray-50 p-4 rounded-lg mb-6 text-left inline-block">
+                                    <h3 class="font-bold text-lg mb-2">Order Details</h3>
+                                    <p class="text-sm text-gray-700" id="orderNumber">Order #: FD12345678</p>
+                                    <p class="text-sm text-gray-700" id="orderDate">Date: August 15, 2023</p>
+                                    <p class="text-sm text-gray-700" id="orderTotal">Total: ₹450</p>
+                                    <p class="text-sm text-gray-700" id="orderPaymentMethod">Payment: Credit Card</p>
+                                </div>
+                                <p class="text-gray-600 mb-6">A confirmation has been sent to your email address.</p>
+                                <button id="closeConfirmationBtn" class="bg-primary hover:bg-primary/90 text-white font-semibold py-3 px-6 rounded-lg transition-colors">
+                                    Continue Shopping
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="md:col-span-1">
+                        <div class="bg-gray-50 p-4 rounded-lg sticky top-[calc(64px+1rem)]"> 
+                            <h3 class="text-lg font-bold mb-4">Order Summary</h3>
+                            <div id="checkoutCartItems" class="space-y-3 mb-4 max-h-48 overflow-y-auto border-b pb-3">
+                            </div>
+                            <div class="space-y-2">
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Subtotal</span>
+                                    <span id="checkoutSubtotal" class="font-medium">₹0</span>
+                                </div>
+                                <div id="discountRow" class="flex justify-between text-sm text-green-600 hidden">
+                                    <span>Discount</span>
+                                    <span id="checkoutDiscount">-₹0</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Delivery Fee</span>
+                                    <span id="checkoutDeliveryFee" class="font-medium">₹40</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Taxes (5%)</span>
+                                    <span id="checkoutTaxes" class="font-medium">₹0</span>
+                                </div>
+                                <div class="flex justify-between font-bold text-lg pt-2 border-t mt-2">
+                                    <span>Total</span>
+                                    <span id="checkoutTotal">₹0</span>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <label for="promoCode" class="block text-sm font-medium text-gray-700 mb-1">Promo Code</label>
+                                <div class="flex space-x-2 items-center">
+                                    <input type="text" id="promoCode" placeholder="Enter promo code" class="flex-grow min-w-0 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-sm"> <button id="applyPromoBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-3 rounded-lg transition-colors text-sm">
+                                        Apply
+                                    </button>
+                                </div>
+                                <p id="promoMessage" class="text-xs mt-1 hidden"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- STATE MANAGEMENT ---
+        let cart = [];
+        let isLoggedIn = false;
+        let currentUser = '';
+
+        // --- DATA --- (Updated with all working food images)
+        const restaurants = [
+            { 
+                id: 0, 
+                name: 'Meghana Foods', 
+                cuisine: 'Biryani, North Indian, Andhra', 
+                rating: 4.5, 
+                deliveryTime: 32, 
+                priceForTwo: 600, 
+                image: 'https://images.unsplash.com/photo-1631515243349-e0cb75fb8d3a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8Y2hpY2tlbiUyMGJpcnlhbml8ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&w=500&q=60', 
+                promoted: true, 
+                veg: false, 
+                menu: [
+                    { name: 'Chicken Biryani', price: 320, veg: false, image: 'https://images.pexels.com/photos/12737656/pexels-photo-12737656.jpeg?auto=compress&cs=tinysrgb&w=600' },
+                    { name: 'Mutton Biryani', price: 380, veg: false, image: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8bXV0dG9uJTIwYmlyeWFuaXxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60' },
+                    { name: 'Paneer Butter Masala', price: 280, veg: true, image: 'https://images.pexels.com/photos/7353379/pexels-photo-7353379.jpeg?auto=compress&cs=tinysrgb&w=600' },
+                    { name: 'Butter Naan', price: 60, veg: true, image: 'https://images.pexels.com/photos/4001873/pexels-photo-4001873.jpeg?auto=compress&cs=tinysrgb&w=600' }
+                ] 
+            },
+            { 
+                id: 1, 
+                name: 'Empire Restaurant', 
+                cuisine: 'North Indian, Kebab, Mughlai', 
+                rating: 4.3, 
+                deliveryTime: 42, 
+                priceForTwo: 750, 
+                image: 'https://images.unsplash.com/photo-1603360946369-dc9bb6258143?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8a2ViYWJ8ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&w=500&q=60', 
+                promoted: false, 
+                veg: false, 
+                menu: [
+                    { name: 'Chicken Kebab', price: 280, veg: false, image: 'https://images.unsplash.com/photo-1559847844-5315695dadae?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8a2ViYWJ8ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&w=500&q=60' },
+                    { name: 'Butter Chicken', price: 320, veg: false, image: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8YnV0dGVyJTIwY2hpY2tlbnxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60' },
+                    { name: 'Veg Pulao', price: 220, veg: true, image: 'https://images.pexels.com/photos/12737656/pexels-photo-12737656.jpeg?auto=compress&cs=tinysrgb&w=600' },
+                    { name: 'Garlic Naan', price: 70, veg: true, image: 'https://images.pexels.com/photos/4001872/pexels-photo-4001872.jpeg?auto=compress&cs=tinysrgb&w=600' }
+                ] 
+            },
+            { 
+                id: 2, 
+                name: 'Truffles', 
+                cuisine: 'American, Burger, Cafe', 
+                rating: 4.8, 
+                deliveryTime: 28, 
+                priceForTwo: 900, 
+                image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8YnVyZ2VyfGVufDB8fDB8fHww&auto=format&fit=crop&w=500&q=60', 
+                promoted: false, 
+                veg: false, 
+                menu: [
+                    { name: 'Classic Burger', price: 250, veg: false, image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8YnVyZ2VyfGVufDB8fDB8fHww&auto=format&fit=crop&w=500&q=60' },
+                    { name: 'Chicken Steak', price: 380, veg: false, image: 'https://images.unsplash.com/photo-1603360946369-dc9bb6258143?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8a2ViYWJ8ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&w=500&q=60' },
+                    { name: 'Veggie Burger', price: 220, veg: true, image: 'https://images.unsplash.com/photo-1606755962773-d324e0a13086?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8dmVnZ2llJTIwYnVyZ2VyfGVufDB8fDB8fHww&auto=format&fit=crop&w=500&q=60' },
+                    { name: 'French Fries', price: 150, veg: true, image: 'https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8ZnJlbmNoJTIwZnJpZXN8ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&w=500&q=60' }
+                ] 
+            },
+            { 
+                id: 3, 
+                name: 'Onesta', 
+                cuisine: 'Pizza, Pasta, Italian', 
+                rating: 4.4, 
+                deliveryTime: 38, 
+                priceForTwo: 700, 
+                image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8cGl6emF8ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&w=500&q=60', 
+                promoted: false, 
+                veg: false, 
+                menu: [
+                    { name: 'Margherita Pizza', price: 250, veg: true, image: 'https://images.unsplash.com/photo-1595854341625-f33ee10dbf94?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8bWFyZ2hlcml0YSUyMHBpenphfGVufDB8fDB8fHww&auto=format&fit=crop&w=500&q=60' },
+                    { name: 'Pepperoni Pizza', price: 350, veg: false, image: 'https://images.unsplash.com/photo-1601924582970-9238bcb495d9?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8cGVwcGVyb25pJTIwcGl6emF8ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&w=500&q=60' },
+                    { name: 'Pasta Alfredo', price: 280, veg: true, image: 'https://images.unsplash.com/photo-1555949258-eb67b1ef0ceb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8cGFzdGElMjBhbGZyZWRvfGVufDB8fDB8fHww&auto=format&fit=crop&w=500&q=60' },
+                    { name: 'Garlic Bread', price: 150, veg: true, image: 'https://images.unsplash.com/photo-1608190003443-86a8cd7f32c2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8Z2FybGljJTIwYnJlYWR8ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&w=500&q=60' }
+                ] 
+            },
+            { 
+                id: 4, 
+                name: 'A2B - Adyar Ananda Bhavan', 
+                cuisine: 'South Indian, Sweets', 
+                rating: 4.6, 
+                deliveryTime: 22, 
+                priceForTwo: 300, 
+                image: 'https://images.pexels.com/photos/5560763/pexels-photo-5560763.jpeg?auto=compress&cs=tinysrgb&w=600', 
+                promoted: false, 
+                veg: true, 
+                menu: [
+                    { name: 'Masala Dosa', price: 120, veg: true, image: 'https://images.pexels.com/photos/5560763/pexels-photo-5560763.jpeg?auto=compress&cs=tinysrgb&w=600' },
+                    { name: 'Idli Sambar', price: 80, veg: true, image: 'https://media.istockphoto.com/id/1277589773/photo/idly-with-sambar-traditional-breakfast-of-south-indian.jpg?s=612x612&w=0&k=20&c=k1bZl7AFSQc696obl4Z4GRK4P18TQHlsPTGR27f_bu0=' },
+                    { name: 'Pongal', price: 100, veg: true, image: 'https://www.sharmispassions.com/wp-content/uploads/2020/12/28942093131_ab5d5a1631_o.jpg' },
+                    { name: 'Filter Coffee', price: 60, veg: true, image: 'https://images.unsplash.com/photo-1522992319-0365e5f11656?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8ZmlsdGVyJTIwY29mZmVlfGVufDB8fDB8fHww&auto=format&fit=crop&w=500&q=60' }
+                ] 
+            },
+            { 
+                id: 5, 
+                name: 'The Rameshwaram Cafe', 
+                cuisine: 'South Indian', 
+                rating: 4.9, 
+                deliveryTime: 18, 
+                priceForTwo: 250, 
+                image: 'https://media.istockphoto.com/id/1145612951/fr/photo/comment-faire-caf%C3%A9-latte-art.jpg?s=612x612&w=0&k=20&c=yuy5gd61sOzwklFVnUni_B1CtfDHFvmRr1tK1z1YFjE=', 
+                promoted: false, 
+                veg: true, 
+                menu: [
+                    { name: 'Ghee Podi Idli', price: 90, veg: true, image: 'https://i.pinimg.com/originals/9a/1f/96/9a1f96c556a8b41366710a1fd6a9d638.jpg' },
+                    { name: 'Ghee Roast', price: 130, veg: true, image: 'https://images.pexels.com/photos/5560763/pexels-photo-5560763.jpeg?auto=compress&cs=tinysrgb&w=600' },
+                    { name: 'Filter Coffee', price: 50, veg: true, image: 'https://images.unsplash.com/photo-1522992319-0365e5f11656?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8ZmlsdGVyJTIwY29mZmVlfGVufDB8fDB8fHww&auto=format&fit=crop&w=500&q=60' },
+                    { name: 'Kesari Bath', price: 70, veg: true, image: 'https://images.pexels.com/photos/12737656/pexels-photo-12737656.jpeg?auto=compress&cs=tinysrgb&w=600' }
+                ] 
+            }
+        ];
+
+        // --- SELECTORS ---
+        const get = (id) => document.getElementById(id);
+        const getAll = (selector) => document.querySelectorAll(selector);
+        
+        const modals = getAll('.modal');
+        const signInModal = get('signInModal');
+        const cartModal = get('cartModal');
+        const menuModal = get('menuModal');
+        const locationModal = get('locationModal');
+
+        // --- UI UPDATE FUNCTIONS ---
+        const updateCart = () => {
+            const cartCount = get('cartCount');
+            const mobileCartCount = get('mobileCartCount');
+            const cartItemsContainer = get('cartItems');
+            const cartTotalContainer = get('cartTotal');
+            const cartTotalEl = cartTotalContainer.querySelector('span:last-child');
+            const emptyCartMessage = get('emptyCartMessage');
+            const checkoutBtn = get('checkoutBtn'); 
+            
+            const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+            if (totalItems > 0) {
+                cartCount.textContent = totalItems;
+                mobileCartCount.textContent = totalItems;
+                cartCount.classList.remove('hidden');
+                emptyCartMessage.classList.add('hidden');
+                cartTotalContainer.classList.remove('hidden');
+                checkoutBtn.disabled = false;
+            } else {
+                cartCount.classList.add('hidden');
+                mobileCartCount.textContent = totalItems;
+                emptyCartMessage.classList.remove('hidden');
+                cartTotalContainer.classList.add('hidden');
+                checkoutBtn.disabled = true;
+            }
+
+            cartItemsContainer.innerHTML = '';
+            let total = 0;
+            cart.forEach((item, index) => {
+                total += item.price * item.quantity;
+                const itemElement = document.createElement('div');
+                itemElement.className = 'flex justify-between items-center p-3 bg-gray-50 rounded-lg';
+                itemElement.innerHTML = `
+                    <div>
+                        <p class="font-medium">${item.name}</p>
+                        <p class="text-sm text-gray-600">Qty: ${item.quantity}</p>
+                    </div>
+                    <div class="flex items-center">
+                        <span class="font-medium mr-4">₹${item.price * item.quantity}</span>
+                        <button class="remove-cart-item text-red-500 hover:text-red-700 text-xl font-bold" data-index="${index}">&times;</button>
+                    </div>
+                `;
+                cartItemsContainer.appendChild(itemElement);
+            });
+            cartTotalEl.textContent = `₹${total}`;
+        };
+
+        const displayRestaurants = (filter = 'all') => {
+            const restaurantGrid = get('restaurant-grid');
+            const noResults = get('no-results');
+            restaurantGrid.innerHTML = '<div class="text-center col-span-full py-10"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div><p class="mt-2 text-gray-600">Loading Restaurants...</p></div>';
+
+            setTimeout(() => {
+                let filteredRestaurants = restaurants;
+                if (filter === 'fast') filteredRestaurants = restaurants.filter(r => r.deliveryTime <= 30);
+                if (filter === 'top') filteredRestaurants = restaurants.filter(r => r.rating >= 4.5);
+                if (filter === 'veg') filteredRestaurants = restaurants.filter(r => r.veg);
+                
+                restaurantGrid.innerHTML = '';
+                if (filteredRestaurants.length === 0) {
+                    noResults.classList.remove('hidden');
+                } else {
+                    noResults.classList.add('hidden');
+                }
+
+                filteredRestaurants.forEach((resto) => {
+                    const card = document.createElement('div');
+                    card.className = 'bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col';
+                    const ratingColor = resto.rating >= 4.5 ? 'bg-accent' : resto.rating >= 4.0 ? 'bg-green-500' : 'bg-orange-400';
+                    card.innerHTML = `
+                        <div class="relative">
+                            <img src="${resto.image}" alt="${resto.name}" class="w-full h-48 object-cover">
+                            ${resto.promoted ? '<span class="absolute top-2 left-2 bg-primary/90 text-white text-xs px-2 py-1 rounded">Promoted</span>' : ''}
+                            ${resto.veg ? '<span class="absolute top-2 right-2 bg-green-600 text-white text-xs px-2 py-1 rounded">Pure Veg</span>' : ''}
+                        </div>
+                        <div class="p-4 flex flex-col flex-grow">
+                            <h3 class="text-xl font-bold">${resto.name}</h3>
+                            <p class="text-gray-600 text-sm mb-3">${resto.cuisine}</p>
+                            <div class="flex justify-between items-center text-sm font-medium mt-auto">
+                                <span class="${ratingColor} text-white px-2 py-1 rounded flex items-center gap-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                                    ${resto.rating}
+                                </span>
+                                <span>${resto.deliveryTime} mins</span>
+                                <span>₹${resto.priceForTwo}</span>
+                            </div>
+                            <button class="view-menu-btn w-full mt-4 py-2 border border-primary text-primary hover:bg-primary hover:text-white rounded-lg transition-colors" data-id="${resto.id}">View Menu</button>
+                        </div>`;
+                    restaurantGrid.appendChild(card);
+                });
+            }, 500);
+        };
+        
+        const showToast = (message, isError = false) => {
+            const toast = get('notificationToast');
+            const toastIconDiv = get('toastIcon');
+            get('toastMessage').textContent = message;
+
+            if (isError) {
+                toastIconDiv.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
+                toastIconDiv.classList.remove('text-accent');
+                toastIconDiv.classList.add('text-red-500');
+            } else {
+                toastIconDiv.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>';
+                toastIconDiv.classList.remove('text-red-500');
+                toastIconDiv.classList.add('text-accent');
+            }
+
+            toast.classList.remove('opacity-0', 'translate-y-20');
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-20');
+            }, 3000);
+        };
+
+        const openModal = (modal) => {
+            if (modal) modal.style.display = 'flex';
+        }
+        const closeModal = (modal) => {
+            if (modal) modal.style.display = 'none';
+        }
+        
+        // --- EVENT HANDLERS ---
+        
+        getAll('[id$="Btn"]').forEach(btn => {
+            if (btn.id === 'checkoutBtn') return; 
+
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetModalId = btn.id.replace('Btn', 'Modal').replace('mobileS','s').replace('mobileC','c');
+                const targetModal = get(targetModalId);
+                if (targetModal) openModal(targetModal);
+            });
+        });
+        
+        modals.forEach(modal => {
+            modal.addEventListener('click', e => {
+                if (e.target.classList.contains('modal')) { // Click on modal background
+                    closeModal(modal);
+                }
+            });
+            // Close buttons within modals
+            modal.querySelectorAll('.close-modal').forEach(closeBtn => {
+                closeBtn.addEventListener('click', () => closeModal(modal));
+            });
+        });
+
+        get('mobile-menu-button').addEventListener('click', () => get('mobile-menu').classList.toggle('hidden'));
+
+        const signInForm = get('signInForm');
+        if (signInForm) {
+            signInForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                isLoggedIn = true;
+                const signInEmailField = signInForm.querySelector('#signInEmail'); // Use specific ID
+                currentUser = signInEmailField.value.split('@')[0] || 'User';
+                closeModal(signInModal);
+                showToast(`Welcome, ${currentUser}!`);
+                
+                const desktopNav = get('desktop-nav');
+                const mobileSignInBtn = get('mobileSignInBtn');
+                
+                const welcomeMessage = `Welcome, ${currentUser}`;
+                let signInLink = desktopNav.querySelector('#signInBtn');
+
+                if (!signInLink && (desktopNav.textContent || "").includes('Welcome,')) { 
+                   desktopNav.childNodes.forEach(node => { 
+                       if(node.nodeType === Node.TEXT_NODE && (node.textContent || "").includes('Welcome,')) {
+                           node.textContent = welcomeMessage;
+                       } else if (node.nodeType === Node.ELEMENT_NODE && node.tagName === 'SPAN' && (node.textContent || "").includes('Welcome,')) {
+                           node.textContent = welcomeMessage;
+                       }
+                   });
+                } else if (signInLink) {
+                    const welcomeSpan = document.createElement('span');
+                    welcomeSpan.className = 'font-medium text-secondary px-2'; 
+                    welcomeSpan.textContent = welcomeMessage;
+                    signInLink.replaceWith(welcomeSpan);
+                }
+
+                mobileSignInBtn.textContent = welcomeMessage;
+                const newMobileSignIn = mobileSignInBtn.cloneNode(true);
+                mobileSignInBtn.parentNode.replaceChild(newMobileSignIn, mobileSignInBtn);
+                signInForm.reset();
+            });
+        }
+        
+        get('findFoodBtn').addEventListener('click', () => {
+            const location = get('locationInput').value.trim();
+            if (location) {
+                get('selectedLocation').textContent = location;
+                openModal(locationModal);
+            } else {
+                showToast('Please enter a location', true);
+            }
+        });
+        get('confirmLocationBtn').addEventListener('click', () => {
+            closeModal(locationModal);
+            showToast(`Showing restaurants for ${get('selectedLocation').textContent}`);
+        });
+
+        get('filter-container').addEventListener('click', e => {
+            if (e.target.matches('.filter-btn')) {
+                getAll('.filter-btn').forEach(btn => {
+                    btn.classList.remove('bg-primary', 'text-white');
+                    btn.classList.add('bg-white', 'text-secondary', 'hover:bg-gray-100');
+                });
+                e.target.classList.add('bg-primary', 'text-white');
+                e.target.classList.remove('bg-white', 'text-secondary', 'hover:bg-gray-100');
+                displayRestaurants(e.target.dataset.filter);
+            }
+        });
+        
+        get('restaurant-grid').addEventListener('click', e => {
+            const viewMenuBtn = e.target.closest('.view-menu-btn');
+            if (viewMenuBtn) {
+                const restaurant = restaurants.find(r => r.id === parseInt(viewMenuBtn.dataset.id));
+                get('menuRestaurantName').textContent = restaurant.name;
+                get('menuRestaurantCuisine').textContent = restaurant.cuisine;
+                const menuItemsContainer = get('menuItems');
+                menuItemsContainer.innerHTML = '';
+                restaurant.menu.forEach(item => {
+                    const menuItem = document.createElement('div');
+                    menuItem.className = 'flex justify-between items-center p-4 border-b last:border-b-0';
+                    menuItem.innerHTML = `
+                        <div class="flex items-center gap-4">
+                            <img src="${item.image || 'https://placehold.co/100x100/f5f5f5/cccccc?text=Food'}" alt="${item.name}" class="w-16 h-16 object-cover rounded">
+                            <div>
+                                <h4 class="font-medium">${item.name} ${item.veg ? '<span class="text-xs text-green-600 font-normal">(Veg)</span>' : '<span class="text-xs text-red-600 font-normal">(Non-Veg)</span>'}</h4>
+                                <p class="text-sm text-gray-600">₹${item.price}</p>
+                            </div>
+                        </div>
+                        <button class="add-to-cart-btn bg-primary/10 text-primary border border-primary px-3 py-1 rounded hover:bg-primary hover:text-white transition-colors text-sm" data-name="${item.name}" data-price="${item.price}">Add</button>`;
+                    menuItemsContainer.appendChild(menuItem);
+                });
+                openModal(menuModal);
+            }
+        });
+
+        get('menuItems').addEventListener('click', e => {
+            if (e.target.matches('.add-to-cart-btn')) {
+                const name = e.target.dataset.name;
+                const price = parseInt(e.target.dataset.price);
+                const existingItem = cart.find(item => item.name === name);
+                if (existingItem) {
+                    existingItem.quantity++;
+                } else {
+                    cart.push({ name, price, quantity: 1 });
+                }
+                updateCart();
+                e.target.textContent = 'Added'; 
+                setTimeout(() => e.target.textContent = 'Add', 1000);
+                showToast(`${name} added to cart`);
+            }
+        });
+        
+        get('cartItems').addEventListener('click', e => {
+             const removeBtn = e.target.closest('.remove-cart-item');
+            if (removeBtn) {
+                cart.splice(parseInt(removeBtn.dataset.index), 1);
+                updateCart();
+                showToast('Item removed from cart', true);
+            }
+        });
+        
+        getAll('.copy-code-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                navigator.clipboard.writeText(btn.dataset.code).then(() => {
+                    const originalText = btn.textContent;
+                    btn.textContent = 'Copied!';
+                    setTimeout(() => btn.textContent = originalText, 2000);
+                    showToast(`Code "${btn.dataset.code}" copied!`);
+                });
+            });
+        });
+
+        // --- CHECKOUT MODAL LOGIC ---
+        const checkoutModal = get('checkoutModal');
+        const deliveryInfoForm = get('deliveryInfoForm');
+        const paymentMethodForm = get('paymentMethodForm');
+        const checkoutStepContents = getAll('.checkout-step-content');
+        const checkoutStepIndicators = getAll('.checkout-step'); 
+
+        const showError = (fieldId, message) => {
+            const errorEl = get(`${fieldId}-error`);
+            const inputEl = get(fieldId);
+            if (errorEl) {
+                errorEl.textContent = message;
+                errorEl.classList.remove('hidden');
+            }
+            if (inputEl) {
+                inputEl.classList.add('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
+                inputEl.classList.remove('focus:ring-primary', 'focus:border-primary');
+            }
+        };
+
+        const clearError = (fieldId) => {
+            const errorEl = get(`${fieldId}-error`);
+            const inputEl = get(fieldId);
+            if (errorEl) errorEl.classList.add('hidden');
+            if (inputEl) {
+                inputEl.classList.remove('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
+                inputEl.classList.add('focus:ring-primary', 'focus:border-primary');
+            }
+        };
+        
+        const clearAllErrors = (form) => {
+            if (!form) return;
+            const inputs = form.querySelectorAll('input, textarea');
+            inputs.forEach(input => {
+                if (input.id) clearError(input.id);
+            });
+        };
+
+        const navigateToCheckoutStep = (stepNumber) => {
+            checkoutStepContents.forEach(content => content.classList.add('hidden'));
+            const targetStepContent = get(`checkout-step-${stepNumber}`);
+            if(targetStepContent) targetStepContent.classList.remove('hidden');
+
+            checkoutStepIndicators.forEach(indicator => {
+                const step = indicator.dataset.step;
+                const divCircle = indicator.querySelector('div > div'); 
+                const spanText = indicator.querySelector('div > span'); 
+
+                indicator.classList.remove('active', 'completed');
+                if (divCircle) {
+                    divCircle.classList.remove('bg-primary', 'text-white', 'bg-accent');
+                    divCircle.classList.add('bg-gray-300', 'text-gray-600');
+                    divCircle.innerHTML = step;
+                }
+                if (spanText) {
+                    spanText.classList.remove('text-gray-800', 'text-primary', 'font-semibold');
+                    spanText.classList.add('text-gray-600', 'font-medium');
+                }
+
+                if (step == stepNumber) {
+                    indicator.classList.add('active');
+                    if (divCircle) {
+                        divCircle.classList.remove('bg-gray-300', 'text-gray-600');
+                        divCircle.classList.add('bg-primary', 'text-white');
+                    }
+                    if (spanText) {
+                        spanText.classList.remove('text-gray-600');
+                        spanText.classList.add('text-gray-800', 'font-semibold');
+                    }
+                } else if (step < stepNumber) {
+                    indicator.classList.add('completed');
+                    if (divCircle) {
+                        divCircle.classList.remove('bg-gray-300', 'text-gray-600');
+                        divCircle.classList.add('bg-accent', 'text-white'); 
+                        divCircle.innerHTML = '&#10003;'; 
+                    }
+                    if (spanText) {
+                        spanText.classList.remove('text-gray-600');
+                        spanText.classList.add('text-gray-800', 'font-medium');
+                    }
+                }
+            });
+        };
+
+        if (checkoutModal) {
+            const mainCartCheckoutBtn = get('checkoutBtn'); 
+            if (mainCartCheckoutBtn) {
+                mainCartCheckoutBtn.addEventListener('click', () => {
+                    if (cart.length > 0) {
+                        closeModal(cartModal);
+                        populateCheckoutOrderSummary(); 
+                        clearAllErrors(deliveryInfoForm); 
+                        clearAllErrors(paymentMethodForm);
+                        if(deliveryInfoForm) deliveryInfoForm.reset(); 
+                        if(paymentMethodForm) paymentMethodForm.reset();
+                        
+                        const defaultPaymentRadio = paymentMethodForm ? paymentMethodForm.querySelector('input[name="paymentMethod"][value="card"]') : null;
+                        if(defaultPaymentRadio) {
+                            defaultPaymentRadio.checked = true;
+                            defaultPaymentRadio.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+
+                        navigateToCheckoutStep(1);
+                        openModal(checkoutModal);
+                    } else {
+                        showToast("Your cart is empty. Add items to proceed.", true);
+                    }
+                });
+            }
+
+            if (deliveryInfoForm) {
+                deliveryInfoForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    clearAllErrors(deliveryInfoForm);
+                    let isValid = true;
+
+                    const fullName = get('fullName').value.trim();
+                    const contactNumber = get('contactNumber').value.trim();
+                    const deliveryEmail = get('deliveryEmail').value.trim(); // Ensure this ID is unique to this form
+                    const deliveryAddress = get('deliveryAddress').value.trim();
+                    const city = get('city').value.trim();
+                    const stateVal = get('state').value.trim(); 
+                    const pinCode = get('pinCode').value.trim();
+
+                    if (!fullName) { showError('fullName', 'Full name is required'); isValid = false; }
+                    if (!/^\d{10}$/.test(contactNumber)) { showError('contactNumber', 'Enter a valid 10-digit number'); isValid = false; }
+                    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(deliveryEmail)) { showError('deliveryEmail', 'Enter a valid email address'); isValid = false; }
+                    if (!deliveryAddress) { showError('deliveryAddress', 'Delivery address is required'); isValid = false; }
+                    if (!city) { showError('city', 'City is required'); isValid = false; }
+                    if (!stateVal) { showError('state', 'State is required'); isValid = false; } 
+                    if (!/^\d{6}$/.test(pinCode)) { showError('pinCode', 'Enter a valid 6-digit PIN code'); isValid = false; }
+                    
+                    if (isValid) {
+                        navigateToCheckoutStep(2);
+                    } else {
+                        showToast('Please correct the errors in the delivery form.', true);
+                    }
+                });
+            }
+
+            if (paymentMethodForm) {
+                paymentMethodForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    clearAllErrors(paymentMethodForm);
+                    let isPaymentValid = true;
+                    const selectedPaymentMethod = paymentMethodForm.querySelector('input[name="paymentMethod"]:checked')?.value;
+
+                    if(!selectedPaymentMethod){
+                        showToast('Please select a payment method.', true);
+                        return;
+                    }
+
+                    if (selectedPaymentMethod === 'card') {
+                        const cardNumber = get('cardNumber').value.trim().replace(/\s/g, '');
+                        const cardExpiry = get('cardExpiry').value.trim();
+                        const cardCvv = get('cardCvv').value.trim();
+                        const cardName = get('cardName').value.trim();
+
+                        if (!/^\d{13,19}$/.test(cardNumber)) { showError('cardNumber', 'Enter a valid card number'); isPaymentValid = false; }
+                        if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(cardExpiry)) { showError('cardExpiry', 'Use MM/YY format, e.g., 03/25'); isPaymentValid = false; }
+                        else {
+                            const [month, yearSuffix] = cardExpiry.split('/');
+                            const currentYear = new Date().getFullYear();
+                            const currentMonth = new Date().getMonth() + 1; 
+                            const expiryYear = 2000 + parseInt(yearSuffix);
+                            const expiryMonth = parseInt(month);
+                            if (expiryYear < currentYear || (expiryYear === currentYear && expiryMonth < currentMonth)) {
+                                showError('cardExpiry', 'Card has expired'); isPaymentValid = false;
+                            }
+                        }
+                        if (!/^\d{3,4}$/.test(cardCvv)) { showError('cardCvv', 'Enter a valid CVV (3 or 4 digits)'); isPaymentValid = false; }
+                        if (!cardName) { showError('cardName', 'Name on card is required'); isPaymentValid = false; }
+                    } else if (selectedPaymentMethod === 'upi') {
+                        const upiId = get('upiId').value.trim();
+                        if (!/^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/.test(upiId)) { showError('upiId', 'Enter a valid UPI ID (e.g., name@okhdfc)'); isPaymentValid = false; }
+                    }
+
+                    if (isPaymentValid) {
+                        const orderDetails = {
+                            number: `FF${Date.now().toString().slice(-7)}`,
+                            date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
+                            total: get('checkoutTotal').textContent,
+                            paymentMethod: selectedPaymentMethod.charAt(0).toUpperCase() + selectedPaymentMethod.slice(1)
+                        };
+                        get('orderNumber').textContent = `Order #: ${orderDetails.number}`;
+                        get('orderDate').textContent = `Date: ${orderDetails.date}`;
+                        get('orderTotal').textContent = `Total: ${orderDetails.total}`;
+                        get('orderPaymentMethod').textContent = `Payment: ${orderDetails.paymentMethod.replace('Cod', 'Cash on Delivery')}`;
+                        
+                        navigateToCheckoutStep(3);
+                        showToast('Order placed successfully!');
+                        cart = []; 
+                        updateCart();
+                        
+                        if(get('promoCode')) get('promoCode').value = '';
+                        if(get('promoMessage')) {
+                            get('promoMessage').classList.add('hidden');
+                            get('promoMessage').textContent = '';
+                        }
+                        currentDiscountValue = 0; // MODIFIED: was currentDiscount
+                        appliedPromoDetails = null;
+                        if(get('discountRow')) get('discountRow').classList.add('hidden');
+
+                    } else {
+                        showToast('Please correct the errors in the payment form.', true);
+                    }
+                });
+
+                const paymentRadios = paymentMethodForm.querySelectorAll('input[name="paymentMethod"]');
+                const cardDetailsDiv = get('cardPaymentDetails');
+                const upiDetailsDiv = get('upiPaymentDetails');
+                const walletDetailsDiv = get('walletPaymentDetails');
+
+                paymentRadios.forEach(radio => {
+                    radio.addEventListener('change', () => {
+                        const showCard = radio.value === 'card' && radio.checked;
+                        const showUpi = radio.value === 'upi' && radio.checked;
+                        const showWallet = radio.value === 'wallet' && radio.checked;
+
+                        if(cardDetailsDiv) cardDetailsDiv.classList.toggle('hidden', !showCard);
+                        if(upiDetailsDiv) upiDetailsDiv.classList.toggle('hidden', !showUpi);
+                        if(walletDetailsDiv) walletDetailsDiv.classList.toggle('hidden', !showWallet);
+                        
+                        if(cardDetailsDiv) cardDetailsDiv.querySelectorAll('input').forEach(input => input.required = showCard);
+                        if(upiDetailsDiv && upiDetailsDiv.querySelector('input')) upiDetailsDiv.querySelector('input').required = showUpi;
+                    });
+                });
+                const defaultPayment = paymentMethodForm.querySelector('input[name="paymentMethod"][value="card"]');
+                if (defaultPayment) {
+                    defaultPayment.checked = true;
+                    defaultPayment.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+
+                const backToDeliveryBtn = get('backToDeliveryBtn');
+                if (backToDeliveryBtn) {
+                    backToDeliveryBtn.addEventListener('click', () => navigateToCheckoutStep(1));
+                }
+            }
+            
+            const closeConfirmationBtn = get('closeConfirmationBtn');
+            if(closeConfirmationBtn) {
+                closeConfirmationBtn.addEventListener('click', () => {
+                    closeModal(checkoutModal);
+                    displayRestaurants(); 
+                });
+            }
+
+            const checkoutCartItemsContainer = get('checkoutCartItems');
+            const checkoutSubtotalEl = get('checkoutSubtotal');
+            const checkoutDeliveryFeeEl = get('checkoutDeliveryFee');
+            const checkoutTaxesEl = get('checkoutTaxes');
+            const checkoutTotalEl = get('checkoutTotal');
+            const promoCodeInput = get('promoCode');
+            const applyPromoBtn = get('applyPromoBtn');
+            const promoMessageEl = get('promoMessage');
+            const discountRow = get('discountRow');
+            const checkoutDiscountEl = get('checkoutDiscount');
+            
+            const DELIVERY_FEE = 40;
+            const TAX_RATE = 0.05; 
+            let currentDiscountValue = 0; 
+            let appliedPromoDetails = null;
+            const PROMO_CODES = {
+                "WELCOME50": { type: "percentage", value: 0.50, maxDiscount: 100, description: "50% OFF up to ₹100" },
+                "FREEDEL": { type: "delivery", value: DELIVERY_FEE, description: "Free Delivery" },
+                "WEEKEND20": { type: "percentage", value: 0.20, description: "20% OFF" }
+            };
+
+            const updateCheckoutOrderSummary = () => {
+                if (!checkoutCartItemsContainer || !checkoutSubtotalEl || !checkoutDeliveryFeeEl || !checkoutTaxesEl || !checkoutTotalEl) return;
+                
+                checkoutCartItemsContainer.innerHTML = '';
+                let subtotal = 0;
+                cart.forEach(item => {
+                    subtotal += item.price * item.quantity;
+                    const itemElement = document.createElement('div');
+                    itemElement.className = 'flex justify-between items-center text-sm';
+                    itemElement.innerHTML = `
+                        <div>
+                            <p class="font-medium text-gray-700">${item.name} <span class="text-xs text-gray-500">(x${item.quantity})</span></p>
+                        </div>
+                        <span class="font-medium text-gray-800">₹${(item.price * item.quantity).toFixed(2)}</span>`;
+                    checkoutCartItemsContainer.appendChild(itemElement);
+                });
+
+                checkoutSubtotalEl.textContent = `₹${subtotal.toFixed(2)}`;
+                
+                let deliveryFee = DELIVERY_FEE;
+                currentDiscountValue = 0; 
+
+                if (appliedPromoDetails) {
+                    if (appliedPromoDetails.type === "delivery") {
+                        deliveryFee = 0;
+                        currentDiscountValue = DELIVERY_FEE; 
+                    } else if (appliedPromoDetails.type === "percentage") {
+                        let discount = subtotal * appliedPromoDetails.value;
+                        if (appliedPromoDetails.maxDiscount) {
+                            discount = Math.min(discount, appliedPromoDetails.maxDiscount);
+                        }
+                        currentDiscountValue = discount;
+                    }
+                }
+
+                if (currentDiscountValue > 0 && discountRow && checkoutDiscountEl) {
+                    checkoutDiscountEl.textContent = `-₹${currentDiscountValue.toFixed(2)}`;
+                    discountRow.classList.remove('hidden');
+                } else if(discountRow) {
+                    discountRow.classList.add('hidden');
+                }
+                
+                checkoutDeliveryFeeEl.textContent = deliveryFee > 0 ? `₹${deliveryFee.toFixed(2)}` : 'FREE';
+
+                const taxableAmount = subtotal - (appliedPromoDetails && appliedPromoDetails.type === "percentage" ? currentDiscountValue : 0);
+                const taxes = Math.max(0, taxableAmount) * TAX_RATE;
+                checkoutTaxesEl.textContent = `₹${taxes.toFixed(2)}`;
+                
+                const total = Math.max(0, taxableAmount) + deliveryFee + taxes;
+                checkoutTotalEl.textContent = `₹${total.toFixed(2)}`;
+            };
+            
+            if (applyPromoBtn) {
+                applyPromoBtn.addEventListener('click', () => {
+                    if (!promoCodeInput || !promoMessageEl) return;
+                    const code = promoCodeInput.value.trim().toUpperCase();
+                    promoMessageEl.classList.add('hidden', 'text-red-500', 'text-green-600');
+                    appliedPromoDetails = null; 
+
+                    if (PROMO_CODES[code]) {
+                        appliedPromoDetails = PROMO_CODES[code];
+                        promoMessageEl.textContent = `Promo "${code}" (${appliedPromoDetails.description}) applied!`;
+                        promoMessageEl.classList.remove('hidden');
+                        promoMessageEl.classList.add('text-green-600');
+                        showToast(`Promo "${code}" applied!`);
+                    } else if (code) {
+                        promoMessageEl.textContent = 'Invalid or expired promo code.';
+                        promoMessageEl.classList.remove('hidden');
+                        promoMessageEl.classList.add('text-red-500');
+                        showToast('Invalid promo code.', true);
+                    } else {
+                        promoMessageEl.textContent = 'Please enter a promo code.';
+                        promoMessageEl.classList.remove('hidden');
+                        promoMessageEl.classList.add('text-red-500');
+                    }
+                    updateCheckoutOrderSummary(); 
+                });
+            }
+
+            const populateCheckoutOrderSummary = () => {
+                if(promoCodeInput) promoCodeInput.value = '';
+                if(promoMessageEl) {
+                     promoMessageEl.classList.add('hidden');
+                     promoMessageEl.textContent = '';
+                }
+                appliedPromoDetails = null;
+                currentDiscountValue = 0;
+                if(discountRow) discountRow.classList.add('hidden');
+                updateCheckoutOrderSummary();
+            };
+
+        } 
+
+        // --- INITIALIZATION ---
+        displayRestaurants();
+        updateCart();
+
+        // Add event listeners for Order Now buttons (desktop and mobile)
+        const orderNowBtn = document.getElementById('orderNowBtn');
+        const mobileOrderNowBtn = document.getElementById('mobileOrderNowBtn');
+        function scrollToRestaurants() {
+            const section = document.getElementById('restaurant-grid');
+            if (section) {
+                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            // Optionally close mobile menu if open
+            const mobileMenu = document.getElementById('mobile-menu');
+            if (mobileMenu && !mobileMenu.classList.contains('hidden')) {
+                mobileMenu.classList.add('hidden');
+            }
+        }
+        if (orderNowBtn) orderNowBtn.addEventListener('click', (e) => { e.preventDefault(); scrollToRestaurants(); });
+        if (mobileOrderNowBtn) mobileOrderNowBtn.addEventListener('click', (e) => { e.preventDefault(); scrollToRestaurants(); });
+
+        // --- Help Modal Logic ---
+        const helpModal = document.getElementById('helpModal');
+        const helpThankYou = document.getElementById('helpThankYou');
+        const helpContactForm = document.getElementById('helpContactForm');
+        // Open Help modal on click (desktop and mobile)
+        function openHelpModal(e) {
+            e.preventDefault();
+            if (helpModal) helpModal.style.display = 'flex';
+        }
+        // Find Help links in both navs
+        document.querySelectorAll('a').forEach(a => {
+            if (a.textContent.trim() === 'Help') {
+                a.addEventListener('click', openHelpModal);
+            }
+        });
+        // Close Help modal
+        if (helpModal) {
+            helpModal.addEventListener('click', e => {
+                if (e.target.classList.contains('modal')) helpModal.style.display = 'none';
+            });
+            helpModal.querySelectorAll('.close-modal').forEach(btn => {
+                btn.addEventListener('click', () => helpModal.style.display = 'none');
+            });
+        }
+        // Handle Help form submit
+        if (helpContactForm) {
+            helpContactForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                helpThankYou.classList.remove('hidden');
+                setTimeout(() => {
+                    helpThankYou.classList.add('hidden');
+                    helpContactForm.reset();
+                    if (helpModal) helpModal.style.display = 'none';
+                }, 2000);
+            });
+        }
+    });
+
+    function resetCheckoutModal() {
+        if(deliveryInfoForm) deliveryInfoForm.reset();
+        if(paymentMethodForm) paymentMethodForm.reset();
+        clearAllErrors(deliveryInfoForm);
+        clearAllErrors(paymentMethodForm);
+        navigateToCheckoutStep(1);
+        // Reset payment method details visibility
+        const defaultPaymentRadio = paymentMethodForm ? paymentMethodForm.querySelector('input[name="paymentMethod"][value="card"]') : null;
+        if(defaultPaymentRadio) {
+            defaultPaymentRadio.checked = true;
+            defaultPaymentRadio.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    }
+
+    // Always scroll to top (hero section) on page refresh
+    document.addEventListener('DOMContentLoaded', function() {
+        window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    });
+    </script>
+</body>
+</html>
